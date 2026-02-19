@@ -46,24 +46,18 @@ spleenOnlyNumber$ruptureNew <- ifelse(
 spleenOnlyNumber$ruptureNew[367] = "yes"
 
 unique(spleenOnlyNumber$ruptureNew)
+```
 
-
-### if the numMasses column is one or 1, set it to one, if it is two or 2 set it to two, else set it to multiple
-spleenOnlyNumber$numMassesNew <- ifelse(
-  tolower(spleenOnlyNumber$numMasses) == "one" |
-  tolower(spleenOnlyNumber$numMasses) == "1",
-  "one",
-   ifelse(
-    tolower(spleenOnlyNumber$numMasses) == "two" |
-    tolower(spleenOnlyNumber$numMasses) == "2",
-    "two",
-    "multiple"
-  )
-)
-spleenOnlyNumber$numMassesNew[63] = "one"
+```{r}
+unique(spleenOnlyNumber$numMasses)
+### STandardizing the number columns
+spleenOnlyNumber$numMassesNew[spleenOnlyNumber$numMasses %in% c("one","1","on","yes-mass","yes- nodules","yes")] <- "one"
+spleenOnlyNumber$numMassesNew[spleenOnlyNumber$numMasses %in% c("2","two")] <- "two"
+spleenOnlyNumber$numMassesNew[spleenOnlyNumber$numMasses %in% c("Multiple","multiple","multiple (3)","multiple(>3)","three","mutliple","3")] <- "multiple"
 
 unique(spleenOnlyNumber$numMassesNew)
 ```
+
 
 ```{r}
 ###Calculating the proportion of dogs that had a mass rupture
@@ -87,5 +81,9 @@ prob_table <- prop.table(counts_table,margin = 2)
 
 counts_table
 prob_table
+```
+
+```{r}
+### Expected value = (row sum * column sum)/total sum
 ```
 
