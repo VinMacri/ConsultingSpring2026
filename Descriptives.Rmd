@@ -1,0 +1,91 @@
+---
+title: "Descriptives"
+author: "Vincent Macri"
+date: "2026-02-19"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(mosaic)
+library(tidyr)
+```
+
+## R Markdown
+
+
+```{r}
+###Can run this to get back to original dataframe in case it messes up
+spleenGood <- Spleen_Good[-c(1), ]  
+spleenOnlyNumber <- spleenGood[,c(9:10)]   ## Making seperate dataframe with just the number of masses and rupture status
+
+sum(is.na(spleenOnlyNumber))    ###checking for NAs
+
+spleenOnlyNumber<-drop_na(spleenOnlyNumber) ###Removed the NAs
+sum(is.na(spleenOnlyNumber)) 
+
+colnames(spleenOnlyNumber) <- c("rupture", "numMasses")
+
+#Making as factor
+spleenOnlyNumber$numMasses <- as.factor(spleenOnlyNumber$numMasses)
+spleenOnlyNumber$rupture <- as.factor(spleenOnlyNumber$rupture)
+
+```
+
+```{r}
+unique(spleenOnlyNumber$numMasses)
+unique(spleenOnlyNumber$rupture)
+
+
+#### If the rupture column contains a y set the new column equal to yes, else make it no
+spleenOnlyNumber$ruptureNew <- ifelse(
+  grepl("y", spleenOnlyNumber$rupture, ignore.case=TRUE),
+  "yes",
+  "no"
+)
+spleenOnlyNumber$ruptureNew[367] = "yes"
+
+unique(spleenOnlyNumber$ruptureNew)
+
+
+### if the numMasses column is one or 1, set it to one, if it is two or 2 set it to two, else set it to multiple
+spleenOnlyNumber$numMassesNew <- ifelse(
+  tolower(spleenOnlyNumber$numMasses) == "one" |
+  tolower(spleenOnlyNumber$numMasses) == "1",
+  "one",
+   ifelse(
+    tolower(spleenOnlyNumber$numMasses) == "two" |
+    tolower(spleenOnlyNumber$numMasses) == "2",
+    "two",
+    "multiple"
+  )
+)
+spleenOnlyNumber$numMassesNew[63] = "one"
+
+unique(spleenOnlyNumber$numMassesNew)
+```
+
+```{r}
+###Calculating the proportion of dogs that had a mass rupture
+print("prop of masses that ruptured") 
+mean(spleenOnlyNumber$ruptureNew=="yes")
+
+
+### Calculating the proportion of dogs that had each number of masses
+print("numMasses = 1")
+mean(spleenOnlyNumber$numMassesNew=="one")
+print("numMasses = 2")
+mean(spleenOnlyNumber$numMassesNew=="two")
+print("numMasses = multiple")
+mean(spleenOnlyNumber$numMassesNew=="multiple")
+
+### Making a table of number of masses X rupture
+counts_table <- table(spleenOnlyNumber$ruptureNew,spleenOnlyNumber$numMassesNew)
+
+### Converting into proportion table where each column sums to 1 (so it shows of each number mass, what is the proportion that ruptured)
+prob_table <- prop.table(counts_table,margin = 2)
+
+counts_table
+prob_table
+```
+
