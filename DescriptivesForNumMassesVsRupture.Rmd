@@ -1,0 +1,106 @@
+---
+title: "Descriptives"
+author: "Vincent Macri"
+date: "2026-02-19"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(mosaic)
+library(tidyr)
+```
+
+## R Markdown
+
+
+```{r}
+###Can run this to get back to original dataframe in case it messes up
+spleenGood <- Spleen_Good[-c(1), ]  
+spleenOnlyNumber <- spleenGood[,c(9:10)]   ## Making seperate dataframe with just the number of masses and rupture status
+
+sum(is.na(spleenOnlyNumber))    ###checking for NAs
+
+spleenOnlyNumber<-drop_na(spleenOnlyNumber) ###Removed the NAs
+sum(is.na(spleenOnlyNumber)) 
+
+colnames(spleenOnlyNumber) <- c("rupture", "numMasses")
+
+#Making as factor
+spleenOnlyNumber$numMasses <- as.factor(spleenOnlyNumber$numMasses)
+spleenOnlyNumber$rupture <- as.factor(spleenOnlyNumber$rupture)
+
+```
+
+```{r}
+unique(spleenOnlyNumber$numMasses)
+unique(spleenOnlyNumber$rupture)
+
+
+#### If the rupture column contains a y set the new column equal to yes, else make it no
+spleenOnlyNumber$ruptureNew <- ifelse(
+  grepl("y", spleenOnlyNumber$rupture, ignore.case=TRUE),
+  "yes",
+  "no"
+)
+spleenOnlyNumber$ruptureNew[367] = "yes"
+
+unique(spleenOnlyNumber$ruptureNew)
+```
+
+```{r}
+unique(spleenOnlyNumber$numMasses)
+### STandardizing the number columns
+spleenOnlyNumber$numMassesNew[spleenOnlyNumber$numMasses %in% c("one","1","on","yes-mass","yes- nodules","yes")] <- "one"
+spleenOnlyNumber$numMassesNew[spleenOnlyNumber$numMasses %in% c("2","two")] <- "two"
+spleenOnlyNumber$numMassesNew[spleenOnlyNumber$numMasses %in% c("Multiple","multiple","multiple (3)","multiple(>3)","three","mutliple","3")] <- "multiple"
+
+unique(spleenOnlyNumber$numMassesNew)
+```
+
+
+```{r}
+###Calculating the proportion of dogs that had a mass rupture
+print("prop of masses that ruptured") 
+mean(spleenOnlyNumber$ruptureNew=="yes")
+
+
+### Calculating the proportion of dogs that had each number of masses
+print("numMasses = 1")
+mean(spleenOnlyNumber$numMassesNew=="one")
+print("numMasses = 2")
+mean(spleenOnlyNumber$numMassesNew=="two")
+print("numMasses = multiple")
+mean(spleenOnlyNumber$numMassesNew=="multiple")
+
+### Making a table of number of masses X rupture
+counts_table <- table(spleenOnlyNumber$ruptureNew,spleenOnlyNumber$numMassesNew)
+
+### Converting into proportion table where each column sums to 1 (so it shows of each number mass, what is the proportion that ruptured)
+prob_table <- prop.table(counts_table,margin = 2)
+
+counts_table
+prob_table
+```
+
+```{r}
+barplot(prob_table, beside = TRUE, legend = TRUE,col = c("green", "red"))
+```
+
+```{r}
+vcd::mosaic(~ ruptureNew + numMassesNew, data = spleenOnlyNumber,
+shade = TRUE)
+```
+
+```{r}
+chi_test_result <- chisq.test(counts_table)
+print("Expected Table: ")
+print(chi_test_result$expected)
+```
+```{r}
+chi_test_result
+```
+```{r}
+xchisq.test(counts_table)
+```
+
