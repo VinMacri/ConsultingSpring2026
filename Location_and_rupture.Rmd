@@ -1,0 +1,310 @@
+---
+title: "Descriptives"
+output:
+  pdf_document: default
+  html_document: default
+date: "2026-02-19"
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## R Markdown
+
+This is an R Markdown document. Markdown is a simple formatting syntax for authoring HTML, PDF, and MS Word documents. For more details on using R Markdown see <http://rmarkdown.rstudio.com>.
+
+When you click the **Knit** button a document will be generated that includes both content as well as the output of any embedded R code chunks within the document. You can embed an R code chunk like this:
+
+```{r cars}
+summary(cars)
+```
+
+## Including Plots
+
+You can also embed plots, for example:
+
+```{r pressure, echo=FALSE}
+plot(pressure)
+```
+
+Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
+
+```{r}
+library(haven)
+library(ggpubr)
+library(readxl)
+```
+
+```{r}
+getwd()
+```
+
+# CLEANING UP DATA:
+
+```{r}
+New_Spleen <- read_excel(file.choose(New_Spleen)) # renaming full data set
+```
+```{r}
+
+
+
+```{r}
+
+```
+
+```{r}
+rm(list = setdiff(ls(), "New_Spleen"))
+```
+
+```{r}
+mean(New_Spleen$`Weight (kgs)`)
+```
+```{r}
+class(New_Spleen$`Weight (kgs)`)
+```
+
+```{r}
+head(New_Spleen)
+```
+
+```{r}
+str(New_Spleen)
+```
+
+```{r}
+unique(New_Spleen$`Number of nodules`)
+```
+
+```{r}
+nodules <- New_Spleen$`Number of nodules`
+```
+
+```{r Renaming # of nodules column}
+nodules[nodules %in% c("1", "one", "on", "One")] <- "one"
+nodules[nodules %in% c("2", "two")] <- "two"
+nodules[nodules %in% c("Multiple", "multiple", "multiple (3)", "multiple(>3)", "mutliple", "three", "3", "Three")] <- "multiple"
+```
+
+```{r} 
+nodules[nodules %in% c("NA", "yes", "yes-mass", "yes- nodules")] <- NA
+# Creating NA variables. Have to ask Dr. Cali what these variables mean and if we should remove them.
+```
+
+```{r}
+New_Spleen$`Number of Splenic Nodules` <- nodules
+```
+
+```{r}
+unique(New_Spleen$`Number of Splenic Nodules`)
+```
+
+```{r}
+New_Spleen$`Number of Splenic Nodules` <- 
+  as.factor(New_Spleen$`Number of Splenic Nodules`)
+```
+
+```{r}
+unique(New_Spleen$`Ruptured?`)
+```
+
+```{r}
+New_Spleen$Rupture <- tolower(fulldata$`Ruptured?`)
+```
+
+```{r}
+rupture <- New_Spleen$`Ruptured?`
+```
+
+```{r Renaming rupture Y/N variables}
+rupture[grepl("^no", ignore.case = TRUE, rupture)] <- "no"
+rupture[rupture %in% c("np")] <- "no"
+rupture[grepl("^yes", ignore.case = TRUE, rupture)] <- "yes"
+rupture[grepl("ruptured", rupture)] <- "yes"
+rupture[rupture %in% c("ys")] <- "yes"
+rupture[rupture %in% c("one-tail-9x10cm")] <- "yes"
+```
+
+```{r}
+rupture[rupture %in% c("NA","one-tail")] <- NA
+# Creating NA variables. Again, ask Dr. Cali
+```
+
+```{r}
+New_Spleen$`Ruptured?`<- rupture
+```
+
+```{r}
+unique(New_Spleen$`Ruptured?`)
+```
+# Cleaning up location
+
+```{r}
+unique(New_Spleen$`Location of mass`)
+```
+
+```{r}
+unique(New_Spleen$`Location of mass`[data)
+ == "some_value"])
+```
+
+```{r}
+unique(New_Spleen$`Location of mass`[New_Spleen$`Number of nodules` == "multiple"])
+```
+
+```{r}
+location <- New_Spleen$`Location of mass`
+```
+
+```{r}
+unique(New_Spleen$`Location of mass`[New_Spleen$`Number of nodules`== "one"])
+```
+
+```{r}
+location[location %in% c("head", "Head")] <- "head"
+```
+
+```{r}
+location[location %in% c("body", "Body", "mid body")] <- "body"
+```
+
+```{r}
+location[location %in% c("tail", "Tail")] <- "tail"
+```
+
+
+```{r}
+library(mosaic)
+inspect(New_Spleen)
+```
+```{r}
+unique(New_Spleen$`Number of Splenic Nodules`)
+```
+
+```{r}
+unique(New_Spleen$`Number of nodules`)
+```
+# NEW TRY: CLEANING UP LOCATION
+
+```{r}
+### Making a seperate dataframe with only ruptured = yes variables
+ruptured <- subset(New_Spleen, `Ruptured?` == "yes")
+```
+
+```{r}
+table(ruptured$`Ruptured?`)
+```
+
+# Creating clean location categories of head, tail, body, diffuse, and multiple
+
+```{r}
+unique(New_Spleen$`Location of mass`)
+```
+
+```{r}
+grepl("head", "bleeding in head")
+```
+
+```{r} 
+# Taking out unreadable outputs
+location_clean <- New_Spleen[
+  !is.na(New_Spleen$`Location of mass`) &
+  !(New_Spleen$`Location of mass` %in% c("--", "---", "**", "no")),
+]
+```
+
+```{r}
+rm(data_clean, ruptured, ruptured_clean)
+```
+
+```{r}
+nrow(New_Spleen)
+nrow(location_clean)
+```
+
+
+```{r}
+location_clean$head_loc <- grepl("head", 
+                            location_clean$`Location of mass`, 
+                                 ignore.case = TRUE)
+
+location_clean$body_loc <- grepl("body|midbody", 
+                                 location_clean$`Location of mass`, 
+                                 ignore.case = TRUE)
+
+location_clean$tail_loc <- grepl("tail", 
+                                 location_clean$`Location of mass`, 
+                                 ignore.case = TRUE)
+
+location_clean$diffuse_loc <- grepl("diffuse", 
+                                    location_clean$`Location of mass`, 
+                                    ignore.case = TRUE)
+```
+
+```{r}
+location_count <-
+  location_clean$head_loc +
+  location_clean$body_loc +
+  location_clean$tail_loc
+  
+```
+
+```{r}
+location_clean$location_simple <- NA
+
+location_clean$location_simple[location_clean$diffuse_loc] <- "Diffuse"
+
+location_clean$location_simple[
+  !location_clean$diffuse_loc & location_count > 1
+] <- "Multiple_Loc"
+
+location_clean$location_simple[
+  location_count == 1 & location_clean$head_loc
+] <- "Head"
+
+location_clean$location_simple[
+  location_count == 1 & location_clean$body_loc
+] <- "Body"
+
+location_clean$location_simple[
+  location_count == 1 & location_clean$tail_loc
+] <- "Tail"
+```
+
+```{r}
+table(location_clean$location_simple, useNA = "always")
+```
+```{r}
+locationandrupture <- table(location_clean$`Ruptured?`,
+      location_clean$location_simple)
+locationandrupture
+```
+
+```{r}
+### Proportions - within each location, what proportion ruptured?
+prop.table(locationandrupture, margin = 2)
+```
+
+```{r}
+# Checking chi-square assumptions
+chisq.test(locationandrupture)$expected
+```
+```{r}
+# Running Chi-Square Test:
+chisq.test(locationandrupture)
+```
+```{r}
+### Another proportion: of all masses that ruptured, what percent was on head, body, tail, diffuse, or multiple?
+prop.table(locationandrupture, margin = 1)
+```
+### Next step: visuals/models
+
+
+
+
+
+
+
+
+
+
