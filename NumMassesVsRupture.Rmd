@@ -9,6 +9,10 @@ output: pdf_document
 knitr::opts_chunk$set(echo = TRUE)
 library(mosaic)
 library(tidyr)
+install.packages("ggeffects")
+library(ggeffects)
+library(ggplot2)
+library(broom)
 ```
 
 ## R Markdown
@@ -88,7 +92,7 @@ prob_table
 ```
 
 ```{r}
-barplot(prob_table, beside = TRUE, legend = TRUE,col = c("green", "red"), main="Proportion of Ruptured Masses by Number of Masses")
+barplot(prob_table, beside = TRUE, legend = TRUE,col = c("salmon", "lightblue"), main="Proportion of Ruptured Masses by Number of Masses")
 ```
 
 ```{r}
@@ -125,7 +129,63 @@ summary(model)
 ### a dog with two masses is .657 times as likely to rupture than a dog with 1 mass
 ### a dog with three masses is 1.319 times as likely to rupture than a dog with 1 mass
 ```
+
 ```{r}
+newdata <- data.frame(numMassesNew = levels(spleenOnlyNumber$numMassesNew))
+
+newdata$predicted_prob <- predict(model,
+                                  newdata = newdata,
+                                  type = "response")
+
+
+ggplot(newdata, aes(x = numMassesNew, y = predicted_prob)) +
+  geom_point(size = 3) +
+  geom_line(aes(numMassesNew = 1)) +
+  geom_text(aes(label = round(predicted_prob, 3)), 
+            vjust = -0.5, 
+            size = 4) +
+  ylim(0, 1) +
+  labs(y = "Predicted Probability of Rupture",
+       x = "Number of Masses",
+       title = "Predicted Probabilities from Logistic Regression") +
+  theme_minimal()
+```
+```{r}
+
+tidy_model <- tidy(model, conf.int = TRUE, exponentiate = TRUE)
+
+# Remove intercept
+tidy_model <- tidy_model[tidy_model$term != "(Intercept)", ]
+
+ggplot(tidy_model, aes(x = term, y = estimate)) +
+  geom_point(size = 3) +
+  geom_errorbar(aes(ymin = conf.low, ymax = conf.high),
+                width = 0.2) +
+  geom_hline(yintercept = 1, linetype = "dashed") +
+  labs(y = "Odds Ratio",
+       x = "Group",
+       title = "Odds Ratios with 95% CI") +
+  theme_minimal()
+```
+
+```{r}
+prop_table <- prop.table(table(spleenOnlyNumber$numMassesNew, spleenOnlyNumber$ruptureNew), margin = 1)
+
+heat_df <- as.data.frame(prop_table)
+colnames(heat_df) <- c("Group", "Outcome", "Proportion")
+ggplot(heat_df, aes(x = Outcome , y = Group, fill = Proportion)) +
+  geom_tile() +
+  geom_text(aes(label = round(Proportion, 4))) +
+  scale_fill_gradient(low = "cornflowerblue", high = "red2") +
+  labs(title = "Heatmap of Proportions",
+       x = "Outcome",
+       y = "Group") +
+  theme_minimal()
+```
+
+
+```{r}
+#### Binomial Test
 #### Probabilities that I think should occur
 ### 1 mass - 0.39
 ### 2 masses - 0.628   (1 - (.61)^2)
@@ -156,6 +216,7 @@ binom.test(
   sum(spleenOnlyNumber$numMassesNew == "multiple"),
   p = 0.8615
 )
+
 ```
 
 
