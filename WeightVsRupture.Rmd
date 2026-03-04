@@ -1,0 +1,65 @@
+---
+title: "DogWeightvsRupture"
+author: "Vincent Macri"
+date: "2026-03-03"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(mosaic)
+library(tidyr)
+install.packages("ggeffects")
+library(ggeffects)
+library(ggplot2)
+library(broom)
+library(lmtest)
+```
+
+## R Markdown
+
+
+```{r}
+###Can run this to get back to original dataframe in case it messes up
+
+spleenWeight <- spleenGood[,c(5,8)]   ## Making seperate dataframe with just the weight and rupture status
+
+sum(is.na(spleenWeight))    ###checking for NAs
+
+spleenWeight<-drop_na(spleenWeight) ###Removed the NAs
+sum(is.na(spleenWeight)) 
+
+colnames(spleenWeight) <- c("weight", "rupture")
+
+#Making as factor
+spleenWeight$weight <- as.numeric(spleenWeight$weight)
+spleenWeight$rupture <- as.factor(spleenWeight$rupture)
+```
+
+```{r}
+spleenWeight$rupture[spleenWeight$rupture %in% c("no","NO","No","np")] <- "no"
+spleenWeight$ruptureNew <- ifelse(
+  grepl("no", spleenWeight$rupture, ignore.case=TRUE),
+  "no",
+  "yes"
+)
+```
+
+
+```{r}
+favstats(spleenWeight$weight)
+hist(spleenWeight$weight)
+boxplot(spleenWeight$weight)
+qqnorm(spleenWeight$weight)
+qqline(spleenWeight$weight)
+```
+
+```{r}
+spleenWeight$ruptureNew <- factor(spleenWeight$ruptureNew)
+model <- glm(ruptureNew ~ weight, 
+             data = spleenWeight, 
+             family = binomial)
+
+summary(model)
+```
+
