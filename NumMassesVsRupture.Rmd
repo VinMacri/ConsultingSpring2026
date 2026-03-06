@@ -9,7 +9,7 @@ output: pdf_document
 knitr::opts_chunk$set(echo = TRUE)
 library(mosaic)
 library(tidyr)
-install.packages("ggeffects")
+#install.packages("ggeffects")
 library(ggeffects)
 library(ggplot2)
 library(broom)
@@ -21,7 +21,7 @@ library(broom)
 ```{r}
 ###Can run this to get back to original dataframe in case it messes up
 spleenGood <- SpleenUpdated[-c(1), ]  
-spleenOnlyNumber <- spleenGood[,c(8:9)]   ## Making seperate dataframe with just the number of masses and rupture status
+spleenOnlyNumber <- spleenGood[,c(11:12)]   ## Making seperate dataframe with just the number of masses and rupture status
 
 sum(is.na(spleenOnlyNumber))    ###checking for NAs
 
@@ -56,10 +56,10 @@ unique(spleenOnlyNumber$ruptureNew)
 ```{r}
 ###unique(spleenOnlyNumber$numMasses)
 ### STandardizing the number columns
-spleenOnlyNumber$numMassesNew[spleenOnlyNumber$numMasses %in% c("one","1.0","on","One")] <- "one"
-spleenOnlyNumber$numMassesNew[spleenOnlyNumber$numMasses %in% c("2.0","two","TWO")] <- "two"
+spleenOnlyNumber$numMassesNew[spleenOnlyNumber$numMasses %in% c("1","one","1.0","on","One")] <- "one"
+spleenOnlyNumber$numMassesNew[spleenOnlyNumber$numMasses %in% c("2","2.0","two","TWO")] <- "two"
 spleenOnlyNumber$numMassesNew[spleenOnlyNumber$numMasses %in% c("Multiple","multiple","multiple (3)","multiple(>3)","mutliple")] <- "multiple"
-spleenOnlyNumber$numMassesNew[spleenOnlyNumber$numMasses %in% c("3.0","Three","three")] <- "three"
+spleenOnlyNumber$numMassesNew[spleenOnlyNumber$numMasses %in% c("3","3.0","Three","three")] <- "three"
 
 unique(spleenOnlyNumber$numMassesNew)
 ```
@@ -118,17 +118,22 @@ spleenOnlyNumber$numMassesNew <- relevel(spleenOnlyNumber$numMassesNew, ref = "o
 spleenOnlyNumber$numMassesNew <- factor(spleenOnlyNumber$numMassesNew)
 spleenOnlyNumber$ruptureNew <- factor(spleenOnlyNumber$ruptureNew)
 
-model <- glm(ruptureNew ~ numMassesNew, 
+numMassesModel <- glm(ruptureNew ~ numMassesNew, 
              data = spleenOnlyNumber, 
              family = binomial)
 
-summary(model)
+summary(numMassesModel)
 
 ### e^Betas is the odds ratios, so how many times more likely that group is to rupture than a dog with one mass
 ### so a dog with multiple masses is 1.86 times more likely to rupture than a dog with 1 mass  THIS IS THE ONLY ONE THATS STATISTICALLY SIGNIFICANT 
 ### a dog with two masses is .657 times as likely to rupture than a dog with 1 mass
 ### a dog with three masses is 1.319 times as likely to rupture than a dog with 1 mass
 ```
+
+```{r}
+anova(numMassesModel)
+```
+
 
 ```{r}
 newdata <- data.frame(numMassesNew = levels(spleenOnlyNumber$numMassesNew))
