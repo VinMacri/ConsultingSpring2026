@@ -9,7 +9,6 @@ output: pdf_document
 knitr::opts_chunk$set(echo = TRUE)
 library(mosaic)
 library(tidyr)
-install.packages("ggeffects")
 library(ggeffects)
 library(ggplot2)
 library(broom)
@@ -22,7 +21,7 @@ library(lmtest)
 ```{r}
 ###Can run this to get back to original dataframe in case it messes up
 
-spleenWeight <- spleenGood[,c(5,8)]   ## Making seperate dataframe with just the weight and rupture status
+spleenWeight <- spleenGood[,c(8,11)]   ## Making seperate dataframe with just the weight and rupture status
 
 sum(is.na(spleenWeight))    ###checking for NAs
 
@@ -56,10 +55,11 @@ qqline(spleenWeight$weight)
 
 ```{r}
 spleenWeight$ruptureNew <- factor(spleenWeight$ruptureNew)
-model <- glm(ruptureNew ~ weight, 
+weightModel <- glm(ruptureNew ~ weight, 
              data = spleenWeight, 
              family = binomial)
 
-summary(model)
+summary(weightModel)
+anova(weightModel)
 ```
 
