@@ -1,0 +1,206 @@
+---
+title: "SignalmentVsRupture"
+author: "Vincent Macri"
+date: "2026-03-05"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(mosaic)
+library(tidyr)
+library(ggeffects)
+library(ggplot2)
+library(broom)
+```
+
+## R Markdown
+
+```{r}
+###Can run this to get back to original dataframe in case it messes up
+spleenGood <- SpleenUpdated[-c(1), ]  
+spleenSignalment <- spleenGood[,c(4:6,11)]   ## Making seperate dataframe with just the number of masses and rupture status
+
+sum(is.na(spleenSignalment))    ###checking for NAs
+
+spleenSignalment<-drop_na(spleenSignalment) ###Removed the NAs
+sum(is.na(spleenSignalment)) 
+
+colnames(spleenSignalment) <- c("age", "sex_repro","breed","rupture")
+
+#Making as factor
+spleenSignalment$sex_repro <- as.factor(spleenSignalment$sex_repro)
+spleenSignalment$breed <- as.factor(spleenSignalment$breed)
+spleenSignalment$rupture <- as.factor(spleenSignalment$rupture)
+spleenSignalment$age <- as.numeric(spleenSignalment$age)
+
+```
+
+```{r}
+unique(spleenSignalment$age)
+unique(spleenSignalment$sex_repro)
+unique(spleenSignalment$breed)
+unique(spleenSignalment$rupture)
+
+
+#### setting the rupture column to be either 'yes' or 'no'
+
+spleenSignalment$ruptureNew[spleenSignalment$rupture %in% c("no","NO","No","np")] <- "no"
+spleenSignalment$ruptureNew <- ifelse(
+  grepl("no", spleenSignalment$rupture, ignore.case=TRUE),
+  "no",
+  "yes"
+)
+
+spleenSignalment$age[spleenSignalment$age %in% c("5yo")] <- "5"
+spleenSignalment$sex_reproNew[spleenSignalment$sex_repro %in% c("MC","mc","mc.","mv")] <- "MC"
+spleenSignalment$sex_reproNew[spleenSignalment$sex_repro %in% c("fs","FS")] <- "FS"
+spleenSignalment$sex_reproNew[spleenSignalment$sex_repro %in% c("mi","MI")] <- "MI"
+spleenSignalment$sex_reproNew[spleenSignalment$sex_repro %in% c("FI")] <- "FI"
+
+spleenSignalment$sex[spleenSignalment$sex_reproNew %in% c("FI", "FS")] <- "F"
+spleenSignalment$sex[spleenSignalment$sex_reproNew %in% c("MC", "MI")] <- "M"
+
+spleenSignalment$repro[spleenSignalment$sex_reproNew %in% c("FI", "MI")] <- "I"
+spleenSignalment$repro[spleenSignalment$sex_reproNew %in% c("MC", "FS")] <- "C/S"
+
+unique(spleenSignalment$sex_reproNew)
+unique(spleenSignalment$breed)
+unique(spleenSignalment$rupture)
+```
+
+
+
+```{r}
+###### SEX _ REPROD
+print("MI")
+mean(spleenSignalment$sex_reproNew=="MI")
+print("MC")
+mean(spleenSignalment$sex_reproNew=="MC")
+print("FI")
+mean(spleenSignalment$sex_reproNew=="FI")
+print("FS")
+mean(spleenSignalment$sex_reproNew=="FS")
+
+counts_table_sex_repro <- table(spleenSignalment$ruptureNew,spleenSignalment$sex_reproNew)
+counts_table_sex_repro
+
+prob_table_sex_repro <- prop.table(counts_table_sex_repro,margin = 2)
+prob_table_sex_repro
+
+barplot(prob_table_sex_repro, beside = TRUE, legend = TRUE,col = c("salmon", "lightblue"), main="Proportion of Ruptured Masses by Reproductive Status")
+
+chi_test_result_sex_repro <- chisq.test(counts_table_sex_repro)
+print("Expected Table: ")
+print(chi_test_result_sex_repro$expected)  ### Doesn't Meet assumptions, so lets do Fisher;s 
+chi_test_result_sex_repro
+
+
+fisher.test(counts_table_sex_repro)
+```
+
+```{r}
+#####JUST SEX
+print("Male")
+mean(spleenSignalment$sex=="M")
+print("Female")
+mean(spleenSignalment$sex=="F")
+
+
+counts_table_sex <- table(spleenSignalment$ruptureNew,spleenSignalment$sex)
+counts_table_sex
+
+prob_table_sex <- prop.table(counts_table_sex,margin = 2)
+prob_table_sex
+
+barplot(prob_table_sex, beside = TRUE, legend = TRUE,col = c("salmon", "lightblue"), main="Proportion of Ruptured Masses by Sex")
+
+chi_test_result_sex <- chisq.test(counts_table_sex)
+print("Expected Table: ")
+print(chi_test_result_sex$expected) 
+chi_test_result_sex
+```
+```{r}
+#### JUST REPRODUCTIVE STATUS
+print("Intact")
+mean(spleenSignalment$repro=="I")
+print("Castrated/Spayed")
+mean(spleenSignalment$repro=="C/S")
+
+
+counts_table_repro <- table(spleenSignalment$ruptureNew,spleenSignalment$repro)
+counts_table_repro
+
+prob_table_repro <- prop.table(counts_table_repro,margin = 2)
+prob_table_repro
+
+barplot(prob_table_repro, beside = TRUE, legend = TRUE,col = c("salmon", "lightblue"), main="Proportion of Ruptured Masses by Reproduction Status")
+
+chi_test_result_repro <- chisq.test(counts_table_repro)
+print("Expected Table: ")
+print(chi_test_result_repro$expected) 
+chi_test_result_repro
+```
+
+
+
+```{r}
+#### Age
+spleenSignalment$age <- as.numeric(spleenSignalment$age)
+favstats(spleenSignalment$age)
+favstats(spleenSignalment$age~spleenSignalment$ruptureNew)
+hist(spleenSignalment$age)
+boxplot(spleenSignalment$age)
+qqnorm(spleenSignalment$age)
+qqline(spleenSignalment$age)
+
+ggplot(spleenSignalment, aes(x = ruptureNew, y = age, fill = ruptureNew)) +
+  geom_violin(color = "black") +
+  scale_fill_manual(values = c("yes" = "lightblue", "no" = "salmon")) +
+  coord_flip() +
+  theme_minimal() +
+  labs(x = "Rupture", y = "Age of Dog", title = "Age by Rupture Status")
+
+ggplot(spleenSignalment, aes(x = age, fill = ruptureNew)) +
+  geom_histogram(position = "identity", alpha = 0.5, bins = 10, color = "black") +
+  scale_fill_manual(values = c("yes" = "lightblue", "no" = "salmon")) +
+  theme_minimal() +
+  labs(x = "Age", y = "Count", title = "Age Distribution by Rupture Status")
+
+spleenSignalment$ruptureNew <- factor(spleenSignalment$ruptureNew)
+ageModel <- glm(ruptureNew ~ age, 
+             data = spleenSignalment, 
+             family = binomial)
+
+summary(ageModel)
+anova(ageModel)
+```
+
+```{r}
+#### JUST BREED 
+spleenSignalment$breedNew <- ifelse(spleenSignalment$breed %in% c("mbd", "MBD"),
+                     "mix",
+                     ifelse(grepl("mix", spleenSignalment$breed),
+                            "mix",
+                            "pure"))
+
+print("mix")
+mean(spleenSignalment$breedNew=="mix")
+print("pure")
+mean(spleenSignalment$breedNew=="pure")
+
+
+counts_table_breed <- table(spleenSignalment$ruptureNew,spleenSignalment$breedNew)
+counts_table_breed
+
+prob_table_breed <- prop.table(counts_table_breed,margin = 2)
+prob_table_breed
+
+barplot(prob_table_breed, beside = TRUE, legend = TRUE,col = c("salmon", "lightblue"), main="Proportion of Ruptured Masses by Breed")
+
+chi_test_result_breed <- chisq.test(counts_table_breed)
+print("Expected Table: ")
+print(chi_test_result_breed$expected)  ### Doesn't Meet assumptions, so lets do Fisher;s 
+chi_test_result_breed
+```
+
