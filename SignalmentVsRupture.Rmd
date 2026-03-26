@@ -99,6 +99,7 @@ chi_test_result_sex_repro
 fisher.test(counts_table_sex_repro)
 ```
 
+
 ```{r}
 #####JUST SEX
 print("Male")
@@ -120,6 +121,7 @@ print("Expected Table: ")
 print(chi_test_result_sex$expected) 
 chi_test_result_sex
 ```
+
 ```{r}
 #### JUST REPRODUCTIVE STATUS
 print("Intact")
@@ -141,6 +143,7 @@ print("Expected Table: ")
 print(chi_test_result_repro$expected) 
 chi_test_result_repro
 ```
+
 
 
 
@@ -176,6 +179,7 @@ summary(ageModel)
 anova(ageModel)
 ```
 
+
 ```{r}
 #### JUST BREED 
 spleenSignalment$breedNew <- ifelse(spleenSignalment$breed %in% c("mbd", "MBD"),
@@ -200,7 +204,84 @@ barplot(prob_table_breed, beside = TRUE, legend = TRUE,col = c("salmon", "lightb
 
 chi_test_result_breed <- chisq.test(counts_table_breed)
 print("Expected Table: ")
-print(chi_test_result_breed$expected)  ### Doesn't Meet assumptions, so lets do Fisher;s 
+print(chi_test_result_breed$expected) 
 chi_test_result_breed
+
+
+
+
+```
+```{r}
+unique(spleenSignalment$breed)
+
+spleenSignalment$breedNew2 <- spleenSignalment$breed
+
+
+spleenSignalment <- spleenSignalment %>%
+  mutate(breedNew2 = case_when(
+    grepl("mix", breed, ignore.case = TRUE) ~ "mixed",
+    grepl("goldendoodle", breed, ignore.case = TRUE) ~ "gd",
+    grepl("golden", breed, ignore.case = TRUE) ~ "golden",
+    grepl("lab", breed, ignore.case = TRUE) ~ "lab",
+    grepl("pit", breed, ignore.case = TRUE) ~ "pit bull",
+    grepl("beagle", breed, ignore.case = TRUE) ~ "beagle",
+    grepl("german shep", breed, ignore.case = TRUE) ~ "gsd",
+    grepl("gsd", breed, ignore.case = TRUE) ~ "gsd",
+    grepl("shih tzu", breed, ignore.case = TRUE) ~ "shih tzu",
+    TRUE ~ "other"
+  ))
+
+
+unique(spleenSignalment$breedNew2)
+
+print("mix")
+mean(spleenSignalment$breedNew2=="mixed")
+print("gd")
+mean(spleenSignalment$breedNew2=="gd")
+
+print("golden")
+mean(spleenSignalment$breedNew2=="golden")
+print("lab")
+mean(spleenSignalment$breedNew2=="lab")
+
+print("German Shepard")
+mean(spleenSignalment$breedNew2=="gsd")
+print("Pitbull")
+mean(spleenSignalment$breedNew2=="pit bull")
+
+print("Beagle")
+mean(spleenSignalment$breedNew2=="beagle")
+print("Shih Tzu")
+mean(spleenSignalment$breedNew2=="shih tzu")
+print("Other")
+mean(spleenSignalment$breedNew2=="other")
+
+
+counts_table_breedNew <- table(spleenSignalment$ruptureNew,spleenSignalment$breedNew2)
+counts_table_breedNew
+
+prob_table_breedNew <- prop.table(counts_table_breedNew,margin = 2)
+prob_table_breedNew
+
+barplot(prob_table_breedNew, beside = TRUE, legend = TRUE,col = c("salmon", "lightblue"), main="Proportion of Ruptured Masses by Breed")
+
+chi_test_result_breedNew <- chisq.test(counts_table_breedNew)
+print("Expected Table: ")
+print(chi_test_result_breedNew$expected) 
+chi_test_result_breedNew
+
+unique(spleenSignalment$breedNew2)
+
+spleenSignalment$breedNew2 <- factor(spleenSignalment$breedNew2)
+spleenSignalment$ruptureNew <- factor(spleenSignalment$ruptureNew)
+spleenSignalment$breedNew2 <- relevel(spleenSignalment$breedNew2, ref = "other")
+
+breedNewModel <- glm(ruptureNew ~ breedNew2, 
+             data = spleenSignalment, 
+             family = binomial)
+
+summary(breedNewModel)
+anova(breedNewModel)
+
 ```
 
