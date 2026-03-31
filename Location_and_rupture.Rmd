@@ -43,15 +43,9 @@ getwd()
 # CLEANING UP DATA:
 
 ```{r}
-New_Spleen <- read_excel(file.choose(New_Spleen)) # renaming full data set
+New_Spleen <- Spleen_2_
 ```
-```{r}
 
-
-
-```{r}
-
-```
 
 ```{r}
 rm(list = setdiff(ls(), "New_Spleen"))
@@ -81,27 +75,28 @@ nodules <- New_Spleen$`Number of nodules`
 ```
 
 ```{r Renaming # of nodules column}
-nodules[nodules %in% c("1", "one", "on", "One")] <- "one"
-nodules[nodules %in% c("2", "two")] <- "two"
-nodules[nodules %in% c("Multiple", "multiple", "multiple (3)", "multiple(>3)", "mutliple", "three", "3", "Three")] <- "multiple"
+nodules[nodules %in% c("1.0", "one", "on", "One")] <- "one"
+nodules[nodules %in% c("2.0", "two", "TWO")] <- "two"
+nodules[nodules %in% c("Multiple", "multiple", "multiple (3)", "multiple(>3)", "mutliple", "three", "3", "Three", "3.0")] <- "multiple"
 ```
 
 ```{r} 
 nodules[nodules %in% c("NA", "yes", "yes-mass", "yes- nodules")] <- NA
 # Creating NA variables. Have to ask Dr. Cali what these variables mean and if we should remove them.
+## DO not re run
 ```
 
 ```{r}
-New_Spleen$`Number of Splenic Nodules` <- nodules
+New_Spleen$`Number of nodules` <- nodules
 ```
 
 ```{r}
-unique(New_Spleen$`Number of Splenic Nodules`)
+unique(New_Spleen$`Number of nodules`)
 ```
 
 ```{r}
-New_Spleen$`Number of Splenic Nodules` <- 
-  as.factor(New_Spleen$`Number of Splenic Nodules`)
+New_Spleen$`Number of nodules` <- 
+  as.factor(New_Spleen$`Number of nodules`)
 ```
 
 ```{r}
@@ -113,40 +108,54 @@ New_Spleen$Rupture <- tolower(fulldata$`Ruptured?`)
 ```
 
 ```{r}
-rupture <- New_Spleen$`Ruptured?`
+New_Spleen$rupture <- New_Spleen$`Ruptured?`
 ```
+
 
 ```{r Renaming rupture Y/N variables}
-rupture[grepl("^no", ignore.case = TRUE, rupture)] <- "no"
-rupture[rupture %in% c("np")] <- "no"
-rupture[grepl("^yes", ignore.case = TRUE, rupture)] <- "yes"
-rupture[grepl("ruptured", rupture)] <- "yes"
-rupture[rupture %in% c("ys")] <- "yes"
-rupture[rupture %in% c("one-tail-9x10cm")] <- "yes"
+# Copy original column
+New_Spleen$rupture <- New_Spleen$`Ruptured?`
+
+# Clean values
+New_Spleen$rupture[grepl("^no", New_Spleen$rupture, ignore.case = TRUE)] <- "no"
+New_Spleen$rupture[New_Spleen$rupture %in% c("np")] <- NA
+New_Spleen$rupture[grepl("^yes", New_Spleen$rupture, ignore.case = TRUE)] <- "yes"
+New_Spleen$rupture[grepl("ruptured", New_Spleen$rupture, ignore.case = TRUE)] <- "yes"
+New_Spleen$rupture[New_Spleen$rupture %in% c("ys")] <- "yes"
+New_Spleen$rupture[New_Spleen$rupture %in% c("one-tail-9x10cm")] <- "yes"
+
+# Force everything else to NA
+New_Spleen$rupture[!New_Spleen$rupture %in% c("yes","no")] <- NA
+
+# Convert to factor
+New_Spleen$rupture <- as.factor(New_Spleen$rupture)
 ```
 
-```{r}
-rupture[rupture %in% c("NA","one-tail")] <- NA
-# Creating NA variables. Again, ask Dr. Cali
-```
 
-```{r}
-New_Spleen$`Ruptured?`<- rupture
-```
+
+
 
 ```{r}
 unique(New_Spleen$`Ruptured?`)
 ```
+
+```{r}
+unique(New_Spleen$rupture)
+```
+
+```{r}
+colnames(New_Spleen)
+```
+
+
+
+
 # Cleaning up location
 
 ```{r}
 unique(New_Spleen$`Location of mass`)
 ```
 
-```{r}
-unique(New_Spleen$`Location of mass`[data)
- == "some_value"])
-```
 
 ```{r}
 unique(New_Spleen$`Location of mass`[New_Spleen$`Number of nodules` == "multiple"])
@@ -169,7 +178,7 @@ location[location %in% c("body", "Body", "mid body")] <- "body"
 ```
 
 ```{r}
-location[location %in% c("tail", "Tail")] <- "tail"
+location[location %in% c("tail", "Tail", "-tail")] <- "tail"
 ```
 
 
@@ -205,6 +214,11 @@ unique(New_Spleen$`Location of mass`)
 grepl("head", "bleeding in head")
 ```
 
+```{r}
+rm(location_clean)
+```
+
+
 ```{r} 
 # Taking out unreadable outputs
 location_clean <- New_Spleen[
@@ -213,76 +227,104 @@ location_clean <- New_Spleen[
 ]
 ```
 
-```{r}
-rm(data_clean, ruptured, ruptured_clean)
-```
 
 ```{r}
 nrow(New_Spleen)
 nrow(location_clean)
 ```
 
+```{r}
+rm(location_clean)
+```
+
 
 ```{r}
-location_clean$head_loc <- grepl("head", 
-                            location_clean$`Location of mass`, 
-                                 ignore.case = TRUE)
-
-location_clean$body_loc <- grepl("body|midbody", 
-                                 location_clean$`Location of mass`, 
-                                 ignore.case = TRUE)
-
-location_clean$tail_loc <- grepl("tail", 
-                                 location_clean$`Location of mass`, 
-                                 ignore.case = TRUE)
-
-location_clean$diffuse_loc <- grepl("diffuse", 
-                                    location_clean$`Location of mass`, 
-                                    ignore.case = TRUE)
+New_Spleen$location_clean <- New_Spleen$`Location of mass`
 ```
 
 ```{r}
-location_count <-
-  location_clean$head_loc +
-  location_clean$body_loc +
-  location_clean$tail_loc
+colnames(New_Spleen)
+```
+```{r}
+nrow(New_Spleen$location_clean)
+```
+
+```{r}
+length(New_Spleen$location_clean)
+length(New_Spleen$rupture)
+```
+
+```{r}
+
+```
+
+
+```{r}
+New_Spleen$location_clean[
+  New_Spleen$location_clean %in% c("--","---","**","no", "N/A", "na", "n/a", "N/a")
+] <- NA
+```
+
+```{r}
+unique(New_Spleen$location_clean)
+```
+
+
+```{r}
+has_head <- grepl("head", New_Spleen$location_clean)
+
+has_body <- grepl("body|midbody", New_Spleen$location_clean)
+
+has_tail <- grepl("tail", New_Spleen$location_clean)
+
+has_diffuse <- grepl("diffuse", New_Spleen$location_clean)
+
   
 ```
 
+
+
 ```{r}
-location_clean$location_simple <- NA
+num_locs <- has_head + has_body + has_tail + has_diffuse
+  
+```
 
-location_clean$location_simple[location_clean$diffuse_loc] <- "Diffuse"
 
-location_clean$location_simple[
-  !location_clean$diffuse_loc & location_count > 1
-] <- "Multiple_Loc"
 
-location_clean$location_simple[
-  location_count == 1 & location_clean$head_loc
-] <- "Head"
+```{r}
+New_Spleen$location_group[num_locs > 1] <- "Multiple"
 
-location_clean$location_simple[
-  location_count == 1 & location_clean$body_loc
-] <- "Body"
+New_Spleen$location_group[num_locs == 1 & has_head] <- "Head"
 
-location_clean$location_simple[
-  location_count == 1 & location_clean$tail_loc
-] <- "Tail"
+New_Spleen$location_group[num_locs == 1 & has_body] <- "Body"
+
+New_Spleen$location_group[num_locs == 1 & has_tail] <- "Tail"
+
+New_Spleen$location_group[num_locs == 1 & has_diffuse] <- "Diffuse"
 ```
 
 ```{r}
-table(location_clean$location_simple, useNA = "always")
+New_Spleen$location_group <- factor(New_Spleen$location_group)
 ```
+
+
 ```{r}
-locationandrupture <- table(location_clean$`Ruptured?`,
-      location_clean$location_simple)
+table(New_Spleen$location_group, useNA = "ifany")
+```
+
+```{r}
+locationandrupture <- table(New_Spleen$rupture, New_Spleen$location_group)
+```
+
+```{r}
 locationandrupture
 ```
 
+
 ```{r}
 ### Proportions - within each location, what proportion ruptured?
-prop.table(locationandrupture, margin = 2)
+prop_of_locationandrupture <- prop.table(locationandrupture, margin = 2)
+prop_of_locationandrupture
 ```
 
 ```{r}
@@ -299,12 +341,401 @@ prop.table(locationandrupture, margin = 1)
 ```
 ### Next step: visuals/models
 
+```{r}
+barplot_percentsoflocationrupture <- barplot(prop_of_locationandrupture,
+        beside = TRUE,
+        legend = TRUE,
+        col = c("salmon", "lightblue"),
+        ylim = c(0,1),
+        main = "Proportion of Rupture by Location",
+        xlab = "Location",
+        ylab = "Proportion")
+
+barplot_percentsoflocationrupture
+```
+
+### Found that masses in multiple locations are less likely to rupture. However, the "Multiple" category includes both two masses and multiple masses. I want to separate the "Multiple" category into two different locations and three different locations.
+
+```{r}
+New_Spleen$location_clean2 <- New_Spleen$`Location of mass`
+```
+
+```{r}
+length(New_Spleen$location_clean2)
+length(New_Spleen$rupture)
+```
+
+```{r}
+class(New_Spleen$location_clean)
+```
 
 
+```{r}
+New_Spleen$location_clean2[
+  New_Spleen$location_clean2 %in% c("--","---","**","no", "N/A", "na", "n/a", "N/a")
+] <- NA
+```
+
+```{r}
+num_locs2 <- has_head + has_body + has_tail + has_diffuse
+```
+
+```{r}
+has_head2 <- grepl("head", New_Spleen$location_clean2)
+
+has_body2 <- grepl("body|midbody", New_Spleen$location_clean2)
+
+has_tail2 <- grepl("tail", New_Spleen$location_clean2)
+
+has_diffuse2 <- grepl("diffuse", New_Spleen$location_clean2)
+```
+
+```{r}
+New_Spleen$location_group2[num_locs2 > 2] <- "Multiple"
+
+New_Spleen$location_group2[num_locs2 == 2] <- "Two"
+
+New_Spleen$location_group2[num_locs2 == 1 & has_head2] <- "Head"
+
+New_Spleen$location_group2[num_locs2 == 1 & has_body2] <- "Body"
+
+New_Spleen$location_group2[num_locs2 == 1 & has_tail2] <- "Tail"
+
+New_Spleen$location_group2[num_locs2 == 1 & has_diffuse2] <- "Diffuse"
+```
+
+```{r}
+New_Spleen$location_group2 <- character(New_Spleen$location_group2)
+```
+
+```{r}
+table(New_Spleen$location_group2, useNA = "ifany")
+```
+
+### Putting the multiple in NA category for some reason... Trying again:
 
 
+```{r}
+has_head2 <- grepl("head", New_Spleen$location_clean2, ignore.case = TRUE)
+has_body2 <- grepl("body|midbody", New_Spleen$location_clean2, ignore.case = TRUE)
+has_tail2 <- grepl("tail", New_Spleen$location_clean2, ignore.case = TRUE)
+has_diffuse2 <- grepl("diffuse", New_Spleen$location_clean2, ignore.case = TRUE)
+
+num_locs2 <- has_head2 + has_body2 + has_tail2 + has_diffuse2
+```
+
+```{r}
+table(num_locs2)
+```
+
+```{r}
+class(New_Spleen$location_clean2)
+```
+
+```{r}
+New_Spleen$location_group2 <- ifelse(
+  num_locs2 > 2, "Multiple_3plus",
+  ifelse(
+    num_locs2 == 2, "Two",
+    ifelse(
+      num_locs2 == 1 & has_head2, "Head",
+      ifelse(
+        num_locs2 == 1 & has_body2, "Body",
+        ifelse(
+          num_locs2 == 1 & has_tail2, "Tail",
+          ifelse(
+            num_locs2 == 1 & has_diffuse2, "Diffuse",
+            NA
+          )
+        )
+      )
+    )
+  )
+)
+```
+
+```{r}
+class(New_Spleen$location_group2)
+table(New_Spleen$location_group2, useNA="ifany")
+```
+
+```{r}
+sum(table(New_Spleen$location_group2, useNA="ifany"))
+```
+
+```{r}
+locationandrupture2 <- table(New_Spleen$rupture, New_Spleen$location_group2)
+locationandrupture2
+```
+
+```{r}
+### Proportions - within each location, what proportion ruptured?
+prop_of_locationandrupture2 <- prop.table(locationandrupture2, margin = 2)
+prop_of_locationandrupture2
+```
+
+```{r}
+# Checking chi-square assumptions
+chisq.test(locationandrupture2)$expected
+```
+
+### Adding diffuse to the Multiple_3plus category? Ask Dr. Cali
+
+### Further analysis: breaking down location into smaller subsets
+
+```{r}
+unique(New_Spleen$location_group2)
+```
+```{r}
+unique(New_Spleen$`Number of nodules`)
+```
 
 
+```{r}
+# One mass subset
+library(mosaic)
+one_mass <- subset(New_Spleen, `Number of nodules` == "one")
+
+```
+
+```{r}
+head(one_mass)
+```
+
+```{r}
+table(one_mass$location_group2, one_mass$rupture)
+
+```
+```{r}
+# How are there is one nodule variable with two locations...
+subset(New_Spleen,
+       `Number of nodules` == "one" &
+       location_group2 == "Two")[, c("Location of mass", "location_group2")]
+
+# Removing that variable and diffuse (becuase there's only one)
+one_mass_clean <- subset(one_mass,
+                         location_group2 %in% c("Body","Head","Tail"))
+
+one_mass_andlocation <- table(one_mass_clean$location_group2,
+      one_mass_clean$rupture)
+
+one_mass_andlocation
+
+```{r}
+chisq.test(one_mass_andlocation)$expected
+```
+
+```{r}
+chisq.test(one_mass_andlocation)$expected
+```
+
+```{r}
+chisq.test(one_mass_andlocation)
+```
+
+```{r}
+prop.table(one_mass_andlocation)
+```
+
+```{r}
+# Two masses subset
+two_mass <- subset(New_Spleen, `Number of nodules` == "two")
+```
+
+```{r}
+head(two_mass)
+```
+
+```{r}
+two_mass_andlocation <- table(two_mass$location_group2, two_mass$rupture)
+two_mass_andlocation
+```
+```{r}
+prop.table(two_mass_andlocation)
+```
+```{r}
+chisq.test(two_mass_andlocation)$expected
+```
+```{r}
+# Expected counts < 5 --> Fisher's Test
+fisher.test(two_mass_andlocation)
+```
+
+```{r}
+multiple_mass <- subset(New_Spleen, `Number of nodules` == "multiple")
+```
+
+```{r}
+multiple_mass_andlocation <- table(multiple_mass$location_group2, multiple_mass$rupture)
+multiple_mass_andlocation
+```
+
+```{r}
+chisq.test(multiple_mass_andlocation)$expected
+```
+```{r}
+prop.table(multiple_mass_andlocation)
+```
+
+```{r}
+fisher.test(multiple_mass_andlocation)
+```
+```{r}
+number_and_location2 <- subset(New_Spleen,
+                     location_group2 %in% c("Body","Head","Tail"))
+```
+
+```{r}
+rm(number_and_location)
+```
 
 
+```{r}
+number_and_location2
+```
+
+```{r}
+subset(number_and_location2, `Number of nodules` == "multiple")
+```
+
+```{r}
+# Logistic regression:
+
+# Making one the reference group:
+number_and_location2$`Number of nodules` <- 
+  relevel(number_and_location2$`Number of nodules`, ref = "one")
+
+logreg_loc <- glm(rupture ~ `Number of nodules`,
+             data = number_and_location2,
+             family = binomial)
+summary(logreg_loc)
+```
+```{r}
+exp(coef(logreg_loc))
+```
+
+```{r}
+library(mosaic)
+numandlocinteract <- glm(
+  rupture ~ `Number of nodules` * location_group2,
+  data = number_and_location2,
+  family = binomial)
+msummary(numandlocinteract)
+
+# Result: There is definitely not enough data (not enough multiple nodules in each unique location seperately) to include an interaction. 
+```
+```{r}
+### Creating another subset with multiple nodules and two, three, or multiple (3+) locations
+multipleandmultiple <- subset(New_Spleen,
+                     location_group2 %in% c("Two", "Multiple"))
+```
+
+```{r}
+multipleandmultiple
+```
+
+```{r}
+logreg_multiple <- glm(rupture ~ location_group2,
+             data = number_and_location2,
+             family = binomial)
+logreg_multiple
+```
+```{r}
+multipleloc_only <- subset(number_and_location2,
+                        `Number of nodules` == "multiple")
+
+model_multiple <- glm(rupture ~ location_group2,
+                      data = multipleloc_only,
+                      family = binomial)
+
+model_multiple
+```
+```{r}
+rm(model_multiple)
+```
+
+```{r}
+### glm(rupture ~ spread_status,
+    family = binomial,
+    data = multiple_only)
+
+Where spread_status =
+
+"Multiple in one location"
+
+"Multiple across locations"
+
+That directly answers:
+
+Holding "multiple" constant, does being spread out increase rupture risk?
+```
+
+```{r}
+# Creating a new column to separate multiple masses in one location versus multiple across locations
+New_Spleen$spread_status <- NA
+```
+
+```{r}
+New_Spleen$spread_status <- NA_character_
+```
+
+
+```{r}
+unique(New_Spleen$location_group)
+```
+
+```{r}
+unique(New_Spleen$`Number of nodules`)
+```
+
+
+```{r}
+New_Spleen$spread_status[New_Spleen$location_group %in% c("Body","Head","Tail") &  New_Spleen$`Number of nodules` == "multiple"] <- "Multiple in one location"
+
+New_Spleen$spread_status[New_Spleen$location_group %in% c("Multiple") & New_Spleen$`Number of nodules` == "multiple"] <- "Multiple across locations" 
+# Do I include diffuse in this category??? not sure
+```
+
+
+```{r}
+table(New_Spleen$spread_status, useNA = "ifany")
+```
+```{r}
+table(New_Spleen$spread_status, New_Spleen$rupture)
+```
+```{r}
+MM_loc_rupture <- prop.table(
+  table(New_Spleen$spread_status, New_Spleen$rupture),
+  margin = 1)
+MM_loc_rupture
+```
+```{r}
+spread_model <- glm(
+  rupture ~ spread_status,
+  family = binomial,
+  data = New_Spleen
+)
+
+summary(spread_model)
+```
+```{r}
+spread_model <- glm(
+  rupture ~ spread_status,
+  family = binomial,
+  data = New_Spleen)
+
+summary(spread_model)
+```
+```{r}
+exp(coef(spread_model))
+```
+```{r}
+exp(confint(spread_model))
+```
+```{r}
+fisher.test(New_Spleen$spread_status, New_Spleen$rupture)
+```
+```{r}
+
+```
 
