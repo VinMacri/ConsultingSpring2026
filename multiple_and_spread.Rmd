@@ -1,0 +1,387 @@
+---
+title: "Multiple_and_spread"
+output: html_document
+date: "2026-03-07"
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## R Markdown
+
+This is an R Markdown document. Markdown is a simple formatting syntax for authoring HTML, PDF, and MS Word documents. For more details on using R Markdown see <http://rmarkdown.rstudio.com>.
+
+When you click the **Knit** button a document will be generated that includes both content as well as the output of any embedded R code chunks within the document. You can embed an R code chunk like this:
+
+```{r cars}
+summary(cars)
+```
+
+## Including Plots
+
+You can also embed plots, for example:
+
+```{r pressure, echo=FALSE}
+plot(pressure)
+```
+
+Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
+
+### Performed both a logistic regression and fisher's test on multiple masses in one location and multiple in two or more locations but the p-values were both too large and confidence intervals to wide to conclude that there really is a relationship. (Really wanted to prove that multiple nodules condensed in one location were more likely to rupture but didnt :()). Now I'm going to combine the diffuse into two or more locations and maybe it'll work? Prob not though because the sample size for multiple in one location is still small. 
+
+```{r}
+New_Spleen$spread_status2 <- NA_character_
+
+New_Spleen$spread_status2[New_Spleen$location_group %in% c("Body","Head","Tail") &  New_Spleen$`Number of nodules` == "multiple"] <- "Multiple in one location"
+
+New_Spleen$spread_status2[New_Spleen$location_group %in% c("Multiple", "Diffuse") & New_Spleen$`Number of nodules` == "multiple"] <- "Multiple across locations" 
+# Now including diffuse in this category!
+```
+
+```{r}
+table(New_Spleen$spread_status2, useNA = "ifany")
+```
+
+```{r}
+table(New_Spleen$spread_status2, New_Spleen$rupture)
+```
+
+```{r}
+prop.table(table(New_Spleen$spread_status2, New_Spleen$rupture), margin = 1)
+```
+```{r}
+spread_model_wdiffuse <- glm(
+  rupture ~ spread_status2,
+  family = binomial,
+  data = New_Spleen
+)
+
+summary(spread_model_wdiffuse)
+```
+
+```{r}
+exp(coef(spread_model_wdiffuse))
+```
+```{r}
+exp(confint(spread_model_wdiffuse))
+```
+
+```{r}
+fisher.test(New_Spleen$spread_status2, New_Spleen$rupture)
+```
+```{r}
+### Making another 
+```
+
+```{r}
+LocationAndNumber <- glm(rupture ~ `Number of nodules` + location_group2, family = binomial, data = New_Spleen)
+LocationAndNumber
+```
+```{r}
+exp(coef(LocationAndNumber))
+```
+
+```{r}
+
+prop_onemass <- prop.table (one_mass_andlocation)
+
+barplot_onemass <- barplot(
+  t(prop_onemass),
+  beside = TRUE,
+  col = c("bisque3", "pink"),
+  xlab = "Location of Nodules",
+  ylab = "Proportion",
+  legend.text = c("No", "Yes"),
+  main = "Proportion of Rupture by Nodule Location"
+)
+
+
+text(
+  barplot_onemass,
+  t(prop_onemass),
+  labels = round(t(prop_onemass), 2),
+  pos = 3
+)
+
+barplot_onemass
+
+```
+
+```{r}
+library(ggplot2)
+aes(label = paste0(round(after_stat(prop_onemass)*100,1), "%"))
+```
+
+```{r}
+barplot_onemass2 <- ggplot(one_mass_andlocation,
+       aes(x = `Location of nodules`, fill = rupture)) +
+  geom_bar(position = "fill") +
+  scale_fill_manual(values = c("pink", "bisque3")) +
+  labs(
+    x = "Location of Nodules",
+    y = "Proportion",
+    fill = "rupture"
+  ) +
+  theme_minimal()
+```
+```{r}
+str(one_mass_andlocation)
+```
+```{r}
+one_mass_andlocation_df <- as.data.frame(one_mass_andlocation)
+```
+
+```{r}
+library(mosaic)
+library(ggplot2)
+```
+
+
+```{r}
+barplot_onemass2 <- ggplot(one_mass_andlocation_df,
+       aes(x = Location, y = Count, fill = `Rupture?`)) +
+  geom_bar(stat = "identity", position = "fill") +
+  scale_fill_manual(values = c("salmon", "lightblue")) +
+  labs(
+    title = "Location of One Mass Observations",
+    x = "Location",
+    y = "Proportion",
+    fill = "`Rupture?`"
+  ) +
+  theme_minimal()
+
+```
+
+```{r}
+names(one_mass_andlocation_df)
+```
+
+```{r}
+names(one_mass_andlocation_df) <- c("Location", "Rupture?", "Count")
+```
+
+
+```{r}
+barplot_onemass2
+```
+
+```{r}
+prop.table(one_mass_andlocation, 1)
+```
+
+```{r}
+prop.table(two_mass_andlocation, 1)
+```
+
+```{r}
+head(two_mass_andlocation)
+```
+```{r}
+two_mass3 <- two_mass
+```
+
+```{r}
+head(two_mass2)
+```
+```{r}
+class(two_mass2)
+```
+
+
+```{r}
+two_mass3$oneversustwo <- ifelse(two_mass3$location_group2 == "Two",
+                                   "Two locations",
+                                   "One location")
+```
+
+```{r}
+table(two_mass3$oneversustwo, two_mass3$rupture)
+```
+
+```{r}
+two_mass3$location_group2
+```
+```{r}
+twomass_oneversustwo <- glm(rupture ~ oneversustwo,
+             family = binomial,
+             data = two_mass3)
+
+summary(twomass_oneversustwo)
+```
+```{r}
+chisq.test(table(two_mass3$oneversustwo, two_mass3$rupture))
+```
+```{r}
+prop.table(multiple_mass_andlocation, 1)
+```
+```{r}
+multiple_mass_andlocation
+```
+```{r}
+unique(New_Spleen$location_group2)
+```
+
+```{r}
+unique(New_Spleen$location_group)
+```
+
+```{r}
+unique(New_Spleen$`Number of nodules`)
+```
+
+```{r}
+### Location regression with two predictors: number of masses and location, to one outcome, rupture status. This time having diffuse as its own category and including two locations. prob won't work but we'll see
+```
+
+```{r}
+numberandlocation_model <- glm(rupture ~ location_group + `Number of nodules`,
+             data = New_Spleen,
+             family = binomial)
+
+summary(numberandlocation_model)
+```
+```{r}
+exp(coef(numberandlocation_model))
+```
+```{r}
+# Making the reference group for number one:
+New_Spleen$`Number of nodules` <- relevel(New_Spleen$`Number of nodules`, ref = "one")
+```
+
+### Two-factor logistic regression with multiple + diffuse combined
+
+```{r}
+unique(New_Spleen$location_group2)
+```
+
+```{r}
+unique(New_Spleen$location_group)
+```
+
+```{r}
+New_Spleen$location_group3 <- New_Spleen$location_group
+
+New_Spleen$location_group3[New_Spleen$location_group3 %in% c("Multiple", "Diffuse")] <- "Multiple"
+```
+
+```{r}
+numberandlocation_model2 <- glm(rupture ~ location_group3 + `Number of nodules`,
+             data = New_Spleen,
+             family = binomial)
+summary(numberandlocation_model2)
+```
+
+```{r}
+exp(coef(numberandlocation_model2))
+```
+```{r}
+numberandlocation_interaction <- glm(rupture ~ location_group2 * `Number of nodules`,
+              data = New_Spleen,
+              family = binomial)
+```
+
+```{r}
+summary(numberandlocation_interaction)
+```
+
+```{r}
+exp(coef(numberandlocation_interaction))
+```
+
+```{r}
+table(New_Spleen$location_group3,
+      New_Spleen$`Number of nodules`)
+```
+```{r}
+### Binary interaction: one mass and one location and more than one mass and more than one location
+```
+
+```{r}
+New_Spleen$location_binary <- ifelse(New_Spleen$location_group2 == "Multiple",
+                                     "More_than_one_location",
+                                     "One_location")
+```
+
+```{r}
+New_Spleen$location_binary <- factor(New_Spleen$location_binary)
+New_Spleen$location_binary <- relevel(New_Spleen$location_binary, ref = "One_mass")
+```
+
+```{r}
+levels(New_Spleen$location_binary)
+```
+
+```{r}
+unique(New_Spleen$location_binary)
+```
+
+```{r}
+unique(New_Spleen$location_group2)
+```
+
+```{r}
+New_Spleen$location_binary <- ifelse(
+  New_Spleen$location_group2 %in% c("Body","Head","Tail"),
+  "One_location",
+  "More_than_one_location"
+)
+```
+
+```{r}
+New_Spleen$location_binary <- factor(New_Spleen$location_binary)
+```
+
+```{r}
+levels(New_Spleen$location_binary)
+```
+
+```{r}
+table(New_Spleen$location_binary)
+```
+
+```{r}
+New_Spleen$location_binary <- relevel(New_Spleen$location_binary, ref = "One_location")
+```
+
+
+```{r}
+New_Spleen$nodule_binary <- ifelse(
+  New_Spleen$`Number of nodules` == "one",
+  "One_mass",
+  "More_than_one_mass"
+)
+```
+
+```{r}
+New_Spleen$nodule_binary <- factor(New_Spleen$nodule_binary)
+```
+
+```{r}
+New_Spleen$nodule_binary <- relevel(New_Spleen$nodule_binary, ref = "One_mass")
+```
+
+```{r}
+levels(New_Spleen$location_binary)
+```
+
+```{r}
+table(New_Spleen$location_binary, New_Spleen$nodule_binary, New_Spleen$rupture)
+```
+
+```{r}
+binary_model <- glm(rupture ~ location_binary + nodule_binary,
+              data = New_Spleen,
+              family = binomial)
+
+summary(binary_model)
+```
+
+```{r}
+binary_model_interactions <- glm(rupture ~ location_binary * nodule_binary,
+              data = New_Spleen,
+              family = binomial)
+
+summary(binary_model_interactions)
+```
+
