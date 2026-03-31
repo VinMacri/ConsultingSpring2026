@@ -1,0 +1,444 @@
+---
+title: "R Notebook"
+output: html_notebook
+---
+
+This is an [R Markdown](http://rmarkdown.rstudio.com) Notebook. When you execute code within the notebook, the results appear beneath the code. 
+
+Try executing this chunk by clicking the *Run* button within the chunk or by placing your cursor inside it and pressing *Cmd+Shift+Enter*. 
+
+```{r}
+plot(cars)
+```
+
+Add a new chunk by clicking the *Insert Chunk* button on the toolbar or by pressing *Cmd+Option+I*.
+
+When you save the notebook, an HTML file containing the code and output will be saved alongside it (click the *Preview* button or press *Cmd+Shift+K* to preview the HTML file). 
+
+The preview shows you a rendered HTML copy of the contents of the editor. Consequently, unlike *Knit*, *Preview* does not run any R code chunks. Instead, the output of the chunk when it was last run in the editor is displayed.
+
+```{r}
+# Weight, location, and number of masses
+unique(New_Spleen$`Weight (kgs)`)
+```
+
+```{r}
+names(New_Spleen)[names(New_Spleen) == "Weight (kgs)"] <- "weight"
+```
+
+```{r}
+colnames(New_Spleen)
+```
+
+
+```{r}
+class(New_Spleen$weight)
+class(New_Spleen$rupture)
+```
+
+```{r}
+favstats(New_Spleen$weight)
+```
+
+```{r}
+list.files()
+```
+```{r}
+New_Spleen <- Spleen_2_
+```
+
+```{r}
+colnames(New_Spleen)
+```
+
+```{r}
+New_Spleen$`Weight (kgs)`
+```
+```{r}
+favstats(New_Spleen$`Weight (kgs)`)
+```
+```{r}
+New_Spleen_backup <- New_Spleen
+```
+
+```{r}
+New_Spleen <- New_Spleen %>%
+  rename(
+    weight = `Weight (kgs)`
+  )
+```
+
+```{r}
+New_Spleen$weight
+```
+```{r}
+class(New_Spleen$weight)
+```
+
+```{r}
+# Identify which values can't convert
+bad_weights <- New_Spleen$weight[is.na(as.numeric(New_Spleen$weight))]
+unique(bad_weights)
+```
+
+```{r}
+New_Spleen_backup$`Weight (kgs)`
+```
+```{r}
+# Count how many NAs in the weight column
+sum(is.na(New_Spleen$weight))
+```
+
+```{r}
+# Count how many NAs in the weight column
+sum(is.na(New_Spleen_backup$`Weight (kgs)`))
+```
+
+```{r}
+colnames(New_Spleen)
+```
+
+
+```{r}
+model <- glm(rupture ~ weight + `Number of nodules`,
+             data = New_Spleen,
+             family = binomial)
+summary(model)
+```
+```{r}
+New_Spleen$`Number of nodules` <- relevel(New_Spleen$`Number of nodules`, ref = "one")
+weight_and_number <- glm(rupture ~ weight * `Number of nodules`,
+              data = New_Spleen,
+              family = binomial)
+summary(weight_and_number)
+```
+
+```{r}
+coef(model)
+```
+```{r}
+coef(weight_and_number)
+```
+## Size of the dog
+
+```{r}
+unique(New_Spleen$`Size of mass (if applicable)`)
+```
+```{r}
+Spleen_sizes <- New_Spleen
+```
+
+```{r}
+colnames(Spleen_sizes)
+```
+
+
+```{r}
+library(dplyr)
+library(stringr)
+library(purrr)
+
+# Renaming size column
+Spleen_sizes <- Spleen_sizes %>% mutate(size = `Size of mass (if applicable)`)
+
+# Function to extract numbers and compute areas, treating single numbers as squares
+extract_largest_area <- function(text) {
+  if(is.na(text)) return(NA_real_)
+  
+  # Extract all "number x number" patterns
+  matches <- str_extract_all(text, "(\\d+\\.?\\d*)\\s*[xX]\\s*(\\d+\\.?\\d*)")[[1]]
+  
+  # Extract standalone numbers (like "6cm", "12.5") that are not part of "x"
+  single_numbers <- str_extract_all(text, "(?<![xX\\d])\\d+\\.?\\d*(?![xX\\d])")[[1]]
+  
+  # Convert "x" patterns to numeric areas
+  areas <- map_dbl(matches, function(m) {
+    nums <- as.numeric(str_split(m, "[xX]")[[1]])
+    prod(nums)
+  })
+  
+  # Convert single numbers to squares
+  single_areas <- as.numeric(single_numbers)^2
+  
+  # Combine and return the largest
+  all_areas <- c(areas, single_areas)
+  
+  if(length(all_areas) == 0) return(NA_real_)
+  
+  max(all_areas, na.rm = TRUE)
+}
+
+# Apply function to your column
+Spleen_sizes <- Spleen_sizes %>%
+  mutate(largest_nodule_area = map_dbl(size, extract_largest_area))
+```
+
+```{r}
+head(Spleen_sizes$largest_nodule_area, 10)
+```
+
+```{r}
+# Compare original size text vs extracted area
+data.frame(
+  original = New_Spleen$`Size of mass (if applicable)`[1:10],
+  largest_area = Spleen_sizes$largest_nodule_area[1:10]
+)
+```
+```{r}
+# that try did not work.. as you can see above 1.5 x 1.5 cm was calculated as 25 for area
+```
+
+```{r}
+# New try
+library(dplyr)
+library(stringr)
+
+# Function to extract largest nodule area
+extract_largest_area <- function(text){
+  # Skip if NA
+  if(is.na(text)) return(NA)
+  
+  # Extract all "number x number" patterns (handles decimals)
+  matches <- str_extract_all(text, "(\\d+\\.?\\d*)\\s*[xX]\\s*(\\d+\\.?\\d*)")[[1]]
+  
+  if(length(matches) > 0){
+    # Compute area for each match
+    areas <- sapply(matches, function(m){
+      nums <- as.numeric(unlist(str_split(m, "[xX]")))
+      prod(nums)
+    })
+    return(max(areas))
+  }
+  
+  # If no "x" patterns, extract single numbers and square them
+  single_nums <- str_extract_all(text, "\\d+\\.?\\d*")[[1]]
+  if(length(single_nums) > 0){
+    single_nums <- as.numeric(single_nums)
+    return(max(single_nums^2))
+  }
+  
+  return(NA)
+}
+
+# Apply function safely to create a new column
+Spleen_sizes <- Spleen_sizes %>%
+  mutate(largest_area = sapply(size, extract_largest_area))
+```
+
+```{r}
+data.frame(
+  original = New_Spleen$`Size of mass (if applicable)`[1:30],
+  largest_area = Spleen_sizes$largest_nodule_area[1:30])
+```
+
+```{r}
+
+```
+
+
+```{r}
+data.frame(
+  original = New_Spleen$`Size of mass (if applicable)`[1:30],
+  largest_area = Spleen_sizes$largest_nodule_area[1:30])
+```
+
+```{r}
+library(dplyr)
+library(stringr)
+library(purrr)
+
+extract_largest_area <- function(text) {
+  # Handle NA or empty strings
+  if(is.na(text) || str_trim(text) == "") return(NA_real_)
+  
+  text <- tolower(text)
+  
+  # Extract "length x width" patterns
+  matches <- str_extract_all(text, "(\\d+\\.?\\d*)\\s*[x]\\s*(\\d+\\.?\\d*)")[[1]]
+  
+  areas <- numeric(0)
+  
+  if(length(matches) > 0){
+    areas <- sapply(matches, function(m) {
+      dims <- as.numeric(unlist(str_split(m, "[x]")))
+      if(length(dims) == 2) prod(dims) else NA_real_
+    })
+  }
+  
+  # Remove "x" patterns from text so we don't double-count numbers
+  text_no_x <- text
+  if(length(matches) > 0){
+    for(m in matches){
+      text_no_x <- str_replace_all(text_no_x, fixed(m), "")
+    }
+  }
+  
+  # Extract standalone numbers (assume square)
+  single_numbers <- str_extract_all(text_no_x, "\\d+\\.?\\d*")[[1]]
+  if(length(single_numbers) > 0){
+    single_areas <- as.numeric(single_numbers)^2
+    areas <- c(areas, single_areas)
+  }
+  
+  # Ensure numeric output
+  areas <- as.numeric(areas)
+  
+  if(length(areas) == 0) return(NA_real_)
+  
+  max(areas, na.rm = TRUE)
+}
+
+# Apply function safely
+Spleen_sizes <- Spleen_sizes %>%
+  mutate(largest_area = map_dbl(size, extract_largest_area))
+
+# Check first 30
+data.frame(
+  original = Spleen_sizes$size[1:30],
+  largest_area = Spleen_sizes$largest_area[1:30]
+)
+```
+
+```{r}
+View(Spleen_sizes)
+```
+
+```{r}
+data.frame(
+  original = Spleen_sizes$size[30:60],
+  largest_area = Spleen_sizes$largest_area[30:60]
+)
+```
+
+```{r}
+library(dplyr)
+
+# Find rows where the largest area seems off
+Spleen_sizes %>%
+  filter(is.na(largest_area) | largest_area > 300 | largest_area < 1) %>%
+  select(size, largest_area)
+```
+
+```{r}
+library(mosaic)
+favstats(Spleen_sizes$largest_area)
+```
+```{r}
+gf_histogram(~ largest_area, data = Spleen_sizes, binwidth = 30)
+```
+```{r}
+ggplot(Spleen_sizes, aes(y = largest_area)) +
+  geom_boxplot()
+```
+
+```{r}
+library(dplyr)
+library(ggplot2)
+
+ggplot(Spleen_sizes %>% filter(!is.na(rupture)), aes(x = rupture, y = largest_area)) +
+  geom_boxplot()
+```
+```{r}
+ggplot(Spleen_sizes %>% filter(!is.na(rupture) & is.finite(weight)),
+       aes(x = weight, y = largest_area, color = rupture)) +
+  geom_point() +
+  geom_smooth(method = "lm", se = FALSE)
+```
+```{r}
+ggplot(Spleen_sizes %>% filter(!is.na(rupture)), aes(x = rupture, y = largest_area)) +
+  geom_boxplot() +
+  coord_cartesian(ylim = c(0,600))
+```
+```{r}
+ggplot(Spleen_sizes %>% filter(!is.na(rupture) & is.finite(largest_area)),
+       aes(x = rupture, y = largest_area)) +
+  geom_boxplot(fill = "skyblue") +
+  labs(title = "Mass Size by Rupture Status", x = "Rupture", y = "Largest Area") +
+  theme_minimal()
+```
+
+```{r}
+library(dplyr)
+
+SizeGroups <- Spleen_sizes %>%
+  mutate(size_group = cut(
+    largest_area,
+    breaks = c(0, 50, 100, 150, 200, 250, 300, Inf),  # adjust bins as needed
+    labels = c("0-50","50-100","100-150","150-200","200-250","250-300","300+"),
+    include.lowest = TRUE
+  ))
+```
+
+```{r}
+ggplot(SizeGroups %>% filter(!is.na(size_group) & !is.na(rupture)),
+       aes(x = size_group, fill = rupture)) +
+  geom_bar(position = "dodge") +  # side-by-side bars
+  scale_fill_manual(values = c("no" = "lightblue", "yes" = "salmon")) +
+  labs(
+    title = "Mass Size Distribution by Rupture Status",
+    x = "Size Group",
+    y = "Count",
+    fill = "Rupture"
+  ) +
+  theme_minimal()
+```
+```{r}
+ggplot(SizeGroups %>% filter(!is.na(size_group)),
+       aes(x = size_group)) +
+  geom_bar(fill = "lightblue") +
+  labs(title = "Number of Masses by Size Group",
+       x = "Size Group",
+       y = "Count") +
+  theme_minimal()
+```
+
+```{r}
+# Size + rupture logistic regression
+# Fit logistic regression
+size_and_rupture <- glm(rupture ~ largest_area, 
+             data = Spleen_sizes, 
+             family = binomial)
+size_and_rupture
+```
+```{r}
+summary(size_and_rupture)
+```
+```{r}
+Spleen_sizes$log_area <- log(Spleen_sizes$largest_area + 1)  # +1 to avoid log(0)
+
+model_log <- glm(rupture ~ log_area, family = binomial, data = Spleen_sizes)
+summary(model_log)
+```
+
+```{r}
+# Removing the outlier for testing purposes
+Sizes_no_outlier <- Spleen_sizes[Spleen_sizes$largest_area != 1600, ]
+```
+
+```{r}
+No_Outlier <- glm(rupture ~ largest_area, family = binomial, data = Sizes_no_outlier)
+summary(No_Outlier)
+```
+
+```{r}
+log_outlier <- glm(rupture ~ log(largest_area + 1), family = binomial, data = Sizes_no_outlier)
+summary(log_outlier)
+
+```
+```{r}
+size_tab <- table(SizeGroups$size_group, SizeGroups$rupture)
+```
+
+```{r}
+size_tab
+```
+
+
+```{r}
+prop.table(size_tab, margin = 1)
+```
+
+```{r}
+
+```
+
