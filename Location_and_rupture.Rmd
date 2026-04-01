@@ -266,18 +266,40 @@ New_Spleen$location_clean[
 ```
 
 ```{r}
+New_Spleen$location_clean_new <- New_Spleen$location_clean
+```
+
+
+```{r}
 unique(New_Spleen$location_clean)
 ```
 
 
 ```{r}
-has_head <- grepl("head", New_Spleen$location_clean)
 
-has_body <- grepl("body|midbody", New_Spleen$location_clean)
+library(dplyr)
 
-has_tail <- grepl("tail", New_Spleen$location_clean)
+New_Spleen <- New_Spleen %>%
+  # Step 1: Trim extra spaces
+  mutate(location_clean_new = trimws(location_clean_new)) %>%
+  
+  # Step 2: Create logical vectors for each category
+  mutate(
+    has_head = grepl("head", location_clean_new, ignore.case = TRUE),
+    has_body = grepl("body|midbody", location_clean_new, ignore.case = TRUE),
+    has_tail = grepl("tail", location_clean_new, ignore.case = TRUE),
+    has_diffuse = grepl("diffuse", location_clean_new, ignore.case = TRUE)
+  ) 
+ 
+```
 
-has_diffuse <- grepl("diffuse", New_Spleen$location_clean)
+
+
+```{r}
+num_locs_new <- as.numeric(ifelse(is.na(has_head), FALSE, has_head)) +
+                as.numeric(ifelse(is.na(has_body), FALSE, has_body)) +
+                as.numeric(ifelse(is.na(has_tail), FALSE, has_tail)) +
+                as.numeric(ifelse(is.na(has_diffuse), FALSE, has_diffuse))
 
   
 ```
@@ -285,35 +307,90 @@ has_diffuse <- grepl("diffuse", New_Spleen$location_clean)
 
 
 ```{r}
-num_locs <- has_head + has_body + has_tail + has_diffuse
+New_Spleen$location_group_new[num_locs_new > 1] <- "Multiple"
+
+New_Spleen$location_group_new[num_locs_new == 1 & has_head] <- "Head"
+
+New_Spleen$location_group_new[num_locs_new == 1 & has_body] <- "Body"
+
+New_Spleen$location_group_new[num_locs_new == 1 & has_tail] <- "Tail"
+
+New_Spleen$location_group_new[num_locs_new == 1 & has_diffuse] <- "Diffuse"
+```
+
+
+
+
+```{r}
+New_Spleen$location_group_new <- factor(New_Spleen$location_group_new)
+```
+
+
+```{r}
+table(New_Spleen$location_group_new, useNA = "ifany")
+```
+
+```{r}
+# Still not working... final try
+library(dplyr)
+
+New_Spleen$location_clean3 <- New_Spleen$`Location of mass`
+
+# Clean location and create location_group
+New_Spleen <- New_Spleen %>%
+  mutate(location_clean3 = tolower(trimws(location_clean3))) %>%  # lowercase + trim spaces
+  mutate(
+    has_head = grepl("head", location_clean3),
+    has_body = grepl("body|midbody", location_clean3),
+    has_tail = grepl("tail", location_clean3),
+    has_diffuse = grepl("diffuse", location_clean3)
+  ) %>%
+  
+  # Count how many locations exist
+  mutate(num_locs3 = has_head + has_body + has_tail + has_diffuse) %>%
+  
+  # Assign final location_group
+  mutate(location_group_new = case_when(
+    num_locs3 > 1 ~ "Multiple",                 # nodules in multiple locations
+    num_locs3 == 1 & has_head ~ "Head",
+    num_locs3 == 1 & has_body ~ "Body",
+    num_locs3 == 1 & has_tail ~ "Tail",
+    num_locs3 == 1 & has_diffuse ~ "Diffuse",
+    num_locs3 == 0 ~ "Unknown"                 # nothing matched
+  )) 
+
+New_Spleen$location_group_new[New_Spleen$location_group_new == "Unknown"] <- NA
   
 ```
 
-
-
 ```{r}
-New_Spleen$location_group[num_locs > 1] <- "Multiple"
-
-New_Spleen$location_group[num_locs == 1 & has_head] <- "Head"
-
-New_Spleen$location_group[num_locs == 1 & has_body] <- "Body"
-
-New_Spleen$location_group[num_locs == 1 & has_tail] <- "Tail"
-
-New_Spleen$location_group[num_locs == 1 & has_diffuse] <- "Diffuse"
-```
-
-```{r}
-New_Spleen$location_group <- factor(New_Spleen$location_group)
+length(New_Spleen$location_clean3)
 ```
 
 
 ```{r}
-table(New_Spleen$location_group, useNA = "ifany")
+data.frame(
+original = New_Spleen$`Location of mass`,
+`cleaned_location` = New_Spleen$location_group_new
+)
 ```
 
 ```{r}
-locationandrupture <- table(New_Spleen$rupture, New_Spleen$location_group)
+comparison <- data.frame(
+  original = New_Spleen$`Location of mass`,
+  `cleaned_location` = New_Spleen$location_group
+)
+comparison
+```
+
+```{r}
+na_only <- comparison[is.na(comparison$cleaned_location), ]
+na_only
+```
+
+
+```{r}
+locationandrupture <- table(New_Spleen$rupture, New_Spleen$location_group_new)
 ```
 
 ```{r}
